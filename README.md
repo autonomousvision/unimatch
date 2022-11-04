@@ -15,7 +15,7 @@
     ·
     <a href="http://www.cvlibs.net/">Andreas Geiger</a>
   </p>
-  <h3 align="center"><a href="https://arxiv.org/abs/2211.xxxxx">Paper</a> | <a href="https://haofeixu.github.io/unimatch/">Project Page</a> | <a >Colab (Coming Soon)</a> </h3>
+  <h3 align="center"><a href="https://haofeixu.github.io/unimatch/resources/unimatch.pdf">Paper</a> | <a href="https://haofeixu.github.io/unimatch/">Project Page</a> | <a >Colab (Coming Soon)</a> </h3>
   <div align="center"></div>
 </p>
 
