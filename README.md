@@ -77,6 +77,11 @@ Please refer to [scripts/gmflow_demo.sh](scripts/gmflow_demo.sh), [scripts/gmste
 
 
 
+
+https://user-images.githubusercontent.com/19343475/199893756-998cb67e-37d7-4323-ab6e-82fd3cbcd529.mp4
+
+
+
 ## Datasets
 
 The datasets used to train and evaluate our models for all three tasks are given in [DATASETS.md](DATASETS.md)
