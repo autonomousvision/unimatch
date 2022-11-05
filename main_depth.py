@@ -171,8 +171,8 @@ def main(args):
             model_without_ddp = model
 
     num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print('Number of params:', num_params)
     if print_info:
+        print('Number of params:', num_params)
         save_name = '%d_parameters' % num_params
         open(os.path.join(args.checkpoint_dir, save_name), 'a').close()
 
@@ -197,7 +197,8 @@ def main(args):
             start_step = checkpoint['step']
             start_epoch = checkpoint['epoch']
 
-        print('start_epoch: %d, start_step: %d' % (start_epoch, start_step))
+        if print_info:
+            print('start_epoch: %d, start_step: %d' % (start_epoch, start_step))
 
     # evaluation
     if args.eval:

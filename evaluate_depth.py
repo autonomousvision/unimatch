@@ -415,3 +415,5 @@ def inference_depth(model,
             viz_inv_depth = viz_depth_tensor_from_monodepth2(1. / pr_depth_bwd.cpu(),
                                                              return_numpy=True)  # [H, W, 3] uint8
             Image.fromarray(viz_inv_depth).save(filename)
+
+    print('Done!')
