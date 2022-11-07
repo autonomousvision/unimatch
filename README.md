@@ -7,7 +7,7 @@
     ·
     <a href="https://jianfei-cai.github.io/">Jianfei Cai</a>
     ·
-    <a href="https://scholar.google.com/citations?user=VxAuxMwAAAAJ">Hamid Rezatofghi</a>
+    <a href="https://scholar.google.com/citations?user=VxAuxMwAAAAJ">Hamid Rezatofighi</a>
     ·
     <a href="https://www.yf.io/">Fisher Yu</a>
     ·
