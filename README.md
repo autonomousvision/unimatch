@@ -15,7 +15,7 @@
     ·
     <a href="http://www.cvlibs.net/">Andreas Geiger</a>
   </p>
-  <h3 align="center"><a href="https://haofeixu.github.io/unimatch/resources/unimatch.pdf">Paper</a> | <a href="https://haofeixu.github.io/unimatch/">Project Page</a> | <a href="https://colab.research.google.com/drive/1r5m-xVy3Kw60U-m5VB-aQ98oqqg_6cab?usp=sharing">Colab</a> </h3>
+  <h3 align="center"><a href="https://arxiv.org/abs/2211.05783">Paper</a> | <a href="https://haofeixu.github.io/unimatch/">Project Page</a> | <a href="https://colab.research.google.com/drive/1r5m-xVy3Kw60U-m5VB-aQ98oqqg_6cab?usp=sharing">Colab</a> </h3>
   <div align="center"></div>
 </p>
 
@@ -118,7 +118,7 @@ If you find our work useful in your research, please consider citing our paper:
 @article{xu2022unifying,
   title={Unifying Flow, Stereo and Depth Estimation},
   author={Xu, Haofei and Zhang, Jing and Cai, Jianfei and Rezatofighi, Hamid and Yu, Fisher and Tao, Dacheng and Geiger, Andreas},
-  journal={arXiv preprint arXiv:2211.xxxxx},
+  journal={arXiv preprint arXiv:2211.05783},
   year={2022}
 }
 ```
