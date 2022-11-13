@@ -61,7 +61,7 @@ bash pip_install.sh
 
 ## Model Zoo
 
-All pretrained models for flow, stereo and depth on different datasets are available in [MODEL_ZOO.md](MODEL_ZOO.md).
+A large number of pretrained models with different speed-accuracy trade-offs for flow, stereo and depth are available at [MODEL_ZOO.md](MODEL_ZOO.md).
 
 We assume the downloaded weights are located under the `pretrained` directory.
 
