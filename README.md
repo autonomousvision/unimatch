@@ -121,7 +121,7 @@ and then access [http://localhost:6006](http://localhost:6006/) in your browser.
 }
 ```
 
-This work is a substantial extension of our previous conference paper GMFlow (CVPR 2022, Oral), please consider citing GMFlow as well if you found this work useful in your research.
+This work is a substantial extension of our previous conference paper [GMFlow (CVPR 2022, Oral)](https://arxiv.org/abs/2111.13680), please consider citing GMFlow as well if you found this work useful in your research.
 
 ```
 @inproceedings{xu2022gmflow,
