@@ -112,8 +112,6 @@ and then access [http://localhost:6006](http://localhost:6006/) in your browser.
 
 ## Citation
 
-If you find our work useful in your research, please consider citing our paper:
-
 ```
 @article{xu2022unifying,
   title={Unifying Flow, Stereo and Depth Estimation},
@@ -121,6 +119,18 @@ If you find our work useful in your research, please consider citing our paper:
   journal={arXiv preprint arXiv:2211.05783},
   year={2022}
 }
+```
+
+This work is a substantial extension of our previous GMFlow (CVPR 2022, Oral) paper, please consider citing GMFlow as well if you found this work useful in your research.
+
+```
+@inproceedings{xu2022gmflow,
+      title={GMFlow: Learning Optical Flow via Global Matching},
+      author={Xu, Haofei and Zhang, Jing and Cai, Jianfei and Rezatofighi, Hamid and Tao, Dacheng},
+      booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition},
+      pages={8121--8130},
+      year={2022}
+    }
 ```
 
 
