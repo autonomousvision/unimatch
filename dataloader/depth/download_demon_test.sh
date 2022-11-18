@@ -54,7 +54,7 @@ if [ "$answer" != "Y" -a "$answer" != "y" ]; then
 fi
 echo
 
-datasets=(sun3d rgbd mvs scenes11 nyu2)
+datasets=(sun3d rgbd mvs scenes11)
 
 for ds in ${datasets[@]}; do
 	if [ -e "${ds}_test.h5" ]; then

@@ -6,8 +6,8 @@ from joblib import Parallel, delayed
 import numpy as np
 import imageio
 
-# imageio.plugins.freeimage.download()
-# from imageio.plugins import freeimage
+imageio.plugins.freeimage.download()
+from imageio.plugins import freeimage
 import h5py
 from lz4.block import decompress
 import scipy.misc
@@ -85,7 +85,7 @@ def preparedata():
         "scenes11_train",
     ])
 
-    dump_root = os.path.join(path, '../train')
+    dump_root = os.path.join(path, 'train')
     if not os.path.isdir(dump_root):
         os.mkdir(dump_root)
 

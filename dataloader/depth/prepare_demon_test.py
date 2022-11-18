@@ -6,8 +6,8 @@ from joblib import Parallel, delayed
 import numpy as np
 import imageio
 
-# imageio.plugins.freeimage.download()
-# from imageio.plugins import freeimage
+imageio.plugins.freeimage.download()
+from imageio.plugins import freeimage
 import h5py
 from lz4.block import decompress
 import scipy.misc
@@ -61,10 +61,7 @@ def dump_example(dataset_name):
                     dump_depth_file = dump_dir / '{:04d}.npy'.format(f_idx)
                     np.save(dump_depth_file, depth)
                 elif dt_type == "image":
-                    # img = imageio.imread(img.tobytes())
-
-                    img_bytesio = BytesIO(img.tobytes())
-                    img = np.array(Image.open(img_bytesio, 'r'))
+                    img = imageio.imread(img.tobytes())
 
                     dump_img_file = dump_dir / '{:04d}.jpg'.format(f_idx)
                     imageio.imsave(dump_img_file, img)
@@ -82,7 +79,7 @@ def preparedata():
     num_threads = 1
     SUB_DATASET_NAMES = (["rgbd_test", "scenes11_test", "sun3d_test"])
 
-    dump_root = os.path.join(path, '../test')
+    dump_root = os.path.join(path, 'test')
     if not os.path.isdir(dump_root):
         os.mkdir(dump_root)
 
