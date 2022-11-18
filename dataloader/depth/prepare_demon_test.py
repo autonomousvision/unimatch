@@ -12,10 +12,6 @@ import h5py
 from lz4.block import decompress
 import scipy.misc
 
-import matplotlib.pyplot as plt
-from PIL import Image
-from io import BytesIO
-
 import cv2
 
 from path import Path
@@ -34,7 +30,7 @@ def dump_example(dataset_name):
             scale = 1
 
         print("Processing sequence {:d}/{:d}".format(seq_idx, len(file)))
-        dump_dir = os.path.join(path, '../test', dataset_name + "_" + "{:05d}".format(seq_idx))
+        dump_dir = os.path.join(path, 'test', dataset_name + "_" + "{:05d}".format(seq_idx))
         if not os.path.isdir(dump_dir):
             os.mkdir(dump_dir)
         dump_dir = Path(dump_dir)
@@ -62,7 +58,6 @@ def dump_example(dataset_name):
                     np.save(dump_depth_file, depth)
                 elif dt_type == "image":
                     img = imageio.imread(img.tobytes())
-
                     dump_img_file = dump_dir / '{:04d}.jpg'.format(f_idx)
                     imageio.imsave(dump_img_file, img)
 
