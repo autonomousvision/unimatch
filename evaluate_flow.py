@@ -794,6 +794,10 @@ def inference_flow(model,
         if save_flo_flow:
             output_file = os.path.join(output_path, os.path.basename(filenames[test_id])[:-4] + '_pred.flo')
             frame_utils.writeFlow(output_file, flow)
+            if pred_bidir_flow:
+                output_file_bwd = os.path.join(output_path, os.path.basename(filenames[test_id])[:-4] + '_pred_bwd.flo')
+                frame_utils.writeFlow(output_file_bwd, flow_bwd)
+
 
     if save_video:
         suffix = '_flow_img.mp4' if concat_flow_img else '_flow.mp4'
