@@ -723,6 +723,7 @@ def inference_stereo(model,
                      num_reg_refine=1,
                      pred_bidir_disp=False,
                      pred_right_disp=False,
+                     save_pfm_disp=False,
                      ):
     model.eval()
 
@@ -818,6 +819,10 @@ def inference_stereo(model,
 
         disp = pred_disp[0].cpu().numpy()
 
+        if save_pfm_disp:
+            save_name_pfm = save_name[:-4] + '.pfm'
+            write_pfm(save_name_pfm, disp)
+
         disp = vis_disparity(disp)
         cv2.imwrite(save_name, disp)
 
@@ -827,6 +832,10 @@ def inference_stereo(model,
 
             # flip back
             disp = hflip(pred_disp[1]).cpu().numpy()
+
+            if save_pfm_disp:
+                save_name_pfm = save_name[:-4] + '.pfm'
+                write_pfm(save_name_pfm, disp)
 
             disp = vis_disparity(disp)
             cv2.imwrite(save_name, disp)

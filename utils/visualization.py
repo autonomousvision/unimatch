@@ -89,7 +89,7 @@ def tensor2numpy(var_dict):
     return var_dict
 
 
-def viz_depth_tensor_from_monodepth2(disp, return_numpy=False, colormap='plasma'):
+def viz_depth_tensor(disp, return_numpy=False, colormap='plasma'):
     # visualize inverse depth
     assert isinstance(disp, torch.Tensor)
 

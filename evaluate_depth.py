@@ -10,7 +10,7 @@ from dataloader.depth import augmentation as transforms
 from dataloader.depth.datasets import ScannetDataset, DemonDataset
 from loss.depth_loss import compute_errors
 from utils.utils import InputPadder
-from utils.visualization import viz_depth_tensor_from_monodepth2
+from utils.visualization import viz_depth_tensor
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -132,9 +132,9 @@ def validate_scannet(model,
 
         if save_vis_depth:
             filename = os.path.join(save_dir, '%04d_depth_pred.png' % valid_samples)
-            viz_inv_depth = viz_depth_tensor_from_monodepth2(1. / pred_depth.cpu(),
-                                                             return_numpy=True,
-                                                             colormap='plasma')  # [H, W, 3] uint8
+            viz_inv_depth = viz_depth_tensor(1. / pred_depth.cpu(),
+                                             return_numpy=True,
+                                             colormap='plasma')  # [H, W, 3] uint8
             Image.fromarray(viz_inv_depth).save(filename)
 
         gt_depth = gt_depth.cpu().numpy()
@@ -271,9 +271,9 @@ def validate_demon(model,
 
         if save_vis_depth:
             filename = os.path.join(save_dir, '%04d.png' % valid_samples)
-            viz_inv_depth = viz_depth_tensor_from_monodepth2(1. / pred_depth.cpu(),
-                                                             return_numpy=True,
-                                                             colormap='plasma')  # [H, W, 3] uint8
+            viz_inv_depth = viz_depth_tensor(1. / pred_depth.cpu(),
+                                             return_numpy=True,
+                                             colormap='plasma')  # [H, W, 3] uint8
             Image.fromarray(viz_inv_depth).save(filename)
 
         gt_depth = gt_depth.cpu().numpy()
@@ -402,8 +402,8 @@ def inference_depth(model,
         pr_depth = pred_depth[0]
 
         filename = os.path.join(output_path, os.path.basename(imgs[i])[:-4] + '.png')
-        viz_inv_depth = viz_depth_tensor_from_monodepth2(1. / pr_depth.cpu(),
-                                                         return_numpy=True)  # [H, W, 3] uint8
+        viz_inv_depth = viz_depth_tensor(1. / pr_depth.cpu(),
+                                         return_numpy=True)  # [H, W, 3] uint8
         Image.fromarray(viz_inv_depth).save(filename)
 
         if pred_bidir_depth:
@@ -412,8 +412,8 @@ def inference_depth(model,
             pr_depth_bwd = pred_depth[1]
 
             filename = os.path.join(output_path, os.path.basename(imgs[i])[:-4] + '_bwd.png')
-            viz_inv_depth = viz_depth_tensor_from_monodepth2(1. / pr_depth_bwd.cpu(),
-                                                             return_numpy=True)  # [H, W, 3] uint8
+            viz_inv_depth = viz_depth_tensor(1. / pr_depth_bwd.cpu(),
+                                             return_numpy=True)  # [H, W, 3] uint8
             Image.fromarray(viz_inv_depth).save(filename)
 
     print('Done!')

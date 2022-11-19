@@ -114,6 +114,8 @@ def get_args_parser():
                         help='predict both left and right disparities')
     parser.add_argument('--pred_right_disp', action='store_true',
                         help='predict right disparity')
+    parser.add_argument('--save_pfm_disp', action='store_true',
+                        help='save predicted disparity as .pfm format')
 
     parser.add_argument('--debug', action='store_true')
 
@@ -340,6 +342,7 @@ def main(args):
                          num_reg_refine=args.num_reg_refine,
                          pred_bidir_disp=args.pred_bidir_disp,
                          pred_right_disp=args.pred_right_disp,
+                         save_pfm_disp=args.save_pfm_disp,
                          )
 
         return
