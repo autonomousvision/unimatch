@@ -1,7 +1,7 @@
 import torch
 
 from utils.flow_viz import flow_tensor_to_image
-from .visualization import viz_depth_tensor_from_monodepth2
+from .visualization import viz_depth_tensor
 
 
 class Logger:
@@ -63,8 +63,8 @@ class Logger:
     def add_depth_summary(self, depth_pred, depth_gt, mode='train'):
         # assert depth_pred.dim() == 2  # [H, W]
         if self.total_steps % self.summary_freq == 0 or 'val' in mode:
-            pred_viz = viz_depth_tensor_from_monodepth2(depth_pred.detach().cpu())  # [3, H, W]
-            gt_viz = viz_depth_tensor_from_monodepth2(depth_gt.detach().cpu())
+            pred_viz = viz_depth_tensor(depth_pred.detach().cpu())  # [3, H, W]
+            gt_viz = viz_depth_tensor(depth_gt.detach().cpu())
 
             concat = torch.cat((pred_viz, gt_viz), dim=-1)  # [3, H, W*2]
 
@@ -79,7 +79,7 @@ class Logger:
 
         return out
 
-    def push(self, metrics, mode='train', is_depth=False,):
+    def push(self, metrics, mode='train', is_depth=False, ):
         self.total_steps += 1
 
         self.lr_summary()
