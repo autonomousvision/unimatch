@@ -645,7 +645,7 @@ def inference_flow(model,
                    output_path='output',
                    padding_factor=8,
                    inference_size=None,
-                   save_flo_flow=False,  # save as .flo for quantative evaluation
+                   save_flo_flow=False,  # save raw flow prediction as .flo
                    attn_type='swin',
                    attn_splits_list=None,
                    corr_radius_list=None,
