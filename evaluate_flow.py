@@ -775,7 +775,10 @@ def inference_flow(model,
             assert flow_pr.size(0) == 2  # [2, H, W, 2]
             flow_bwd = flow_pr[1].permute(1, 2, 0).cpu().numpy()  # [H, W, 2]
 
-            output_file = os.path.join(output_path, os.path.basename(filenames[test_id])[:-4] + '_flow_bwd.png')
+            if inference_video is not None:
+                output_file = os.path.join(output_path, '%04d_flow_bwd.png' % test_id)
+            else:
+                output_file = os.path.join(output_path, os.path.basename(filenames[test_id])[:-4] + '_flow_bwd.png')
 
             # save vis flow
             save_vis_flow_tofile(flow_bwd, output_file)
@@ -785,17 +788,27 @@ def inference_flow(model,
             if fwd_bwd_consistency_check:
                 fwd_occ, bwd_occ = forward_backward_consistency_check(flow_pr[:1], flow_pr[1:])  # [1, H, W] float
 
-                fwd_occ_file = os.path.join(output_path, os.path.basename(filenames[test_id])[:-4] + '_occ_fwd.png')
-                bwd_occ_file = os.path.join(output_path, os.path.basename(filenames[test_id])[:-4] + '_occ_bwd.png')
+                if inference_video is not None:
+                    fwd_occ_file = os.path.join(output_path, '%04d_occ_fwd.png' % test_id)
+                    bwd_occ_file = os.path.join(output_path, '%04d_occ_bwd.png' % test_id)
+                else:
+                    fwd_occ_file = os.path.join(output_path, os.path.basename(filenames[test_id])[:-4] + '_occ_fwd.png')
+                    bwd_occ_file = os.path.join(output_path, os.path.basename(filenames[test_id])[:-4] + '_occ_bwd.png')
 
                 Image.fromarray((fwd_occ[0].cpu().numpy() * 255.).astype(np.uint8)).save(fwd_occ_file)
                 Image.fromarray((bwd_occ[0].cpu().numpy() * 255.).astype(np.uint8)).save(bwd_occ_file)
 
         if save_flo_flow:
-            output_file = os.path.join(output_path, os.path.basename(filenames[test_id])[:-4] + '_pred.flo')
+            if inference_video is not None:
+                output_file = os.path.join(output_path, '%04d_pred.flo' % test_id)
+            else:
+                output_file = os.path.join(output_path, os.path.basename(filenames[test_id])[:-4] + '_pred.flo')
             frame_utils.writeFlow(output_file, flow)
             if pred_bidir_flow:
-                output_file_bwd = os.path.join(output_path, os.path.basename(filenames[test_id])[:-4] + '_pred_bwd.flo')
+                if inference_video is not None:
+                    output_file_bwd = os.path.join(output_path, '%04d_pred_bwd.flo' % test_id)
+                else:
+                    output_file_bwd = os.path.join(output_path, os.path.basename(filenames[test_id])[:-4] + '_pred_bwd.flo')
                 frame_utils.writeFlow(output_file_bwd, flow_bwd)
 
     if save_video:
