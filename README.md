@@ -81,7 +81,7 @@ Otherwise, you may need to change the corresponding paths in the scripts.
 
 Given an image pair or a video sequence, our code supports generating prediction results of optical flow, disparity and depth.
 
-Please refer to [scripts/gmflow_demo.sh](scripts/gmflow_demo.sh), [scripts/gmstereo_demo.sh](scripts/gmstereo_demo.sh) and [scripts/gmdepth_demo.sh](scripts/depth_demo.sh) for example usages.
+Please refer to [scripts/gmflow_demo.sh](scripts/gmflow_demo.sh), [scripts/gmstereo_demo.sh](scripts/gmstereo_demo.sh) and [scripts/gmdepth_demo.sh](scripts/gmdepth_demo.sh) for example usages.
 
 
 
