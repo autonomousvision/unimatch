@@ -21,7 +21,7 @@
 </p>
 <p align="center">
   <a href="">
-    <img src="https://haofeixu.github.io/unimatch/resources/teaser.svg" alt="Logo" width="70%">
+    <img src="https://haofeixu.github.io/unimatch/resources/teaser.png" alt="Logo" width="70%">
   </a>
 </p>
 
@@ -31,7 +31,7 @@ A unified model for three motion and 3D perception tasks.
 </p>
 <p align="center">
   <a href="">
-    <img src="https://haofeixu.github.io/unimatch/resources/sota_compare.svg" alt="Logo" width="100%">
+    <img src="https://haofeixu.github.io/unimatch/resources/sota_compare.png" alt="Logo" width="100%">
   </a>
 </p>
 
@@ -122,11 +122,11 @@ and then access [http://localhost:6006](http://localhost:6006/) in your browser.
 ## Citation
 
 ```
-@article{xu2022unifying,
+@article{xu2023unifying,
   title={Unifying Flow, Stereo and Depth Estimation},
   author={Xu, Haofei and Zhang, Jing and Cai, Jianfei and Rezatofighi, Hamid and Yu, Fisher and Tao, Dacheng and Geiger, Andreas},
-  journal={arXiv preprint arXiv:2211.05783},
-  year={2022}
+  journal={IEEE Transactions on Pattern Analysis and Machine Intelligence},
+  year={2023}
 }
 ```
 
