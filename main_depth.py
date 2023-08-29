@@ -524,11 +524,7 @@ def main(args):
                     metrics = ['abs_rel', 'sq_rel', 'rmse', 'rmse_log', 'a1', 'a2', 'a3',
                                ]
 
-                    eval_metrics = []
-                    for metric in metrics:
-                        if metric in val_results.keys():
-                            eval_metrics.append(metric)
-
+                    eval_metrics = [metric for metric in metrics if metric in val_results.keys()]
                     metrics_values = [val_results[metric] for metric in eval_metrics]
 
                     num_metrics = len(eval_metrics)
