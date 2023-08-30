@@ -299,11 +299,7 @@ def main(args):
                            'sintel_final_epe', 'sintel_final_s0_10', 'sintel_final_s10_40', 'sintel_final_s40+',
                            'kitti_epe', 'kitti_f1', 'kitti_s0_10', 'kitti_s10_40', 'kitti_s40+',
                            ]
-                eval_metrics = []
-                for metric in metrics:
-                    if metric in val_results.keys():
-                        eval_metrics.append(metric)
-
+                eval_metrics = [metric for metric in metrics if metric in val_results.keys()]
                 metrics_values = [val_results[metric] for metric in eval_metrics]
 
                 num_metrics = len(eval_metrics)
