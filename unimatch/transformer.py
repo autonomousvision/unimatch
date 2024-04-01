@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from typing import Optional, Tuple
 
 from .attention import (single_head_full_attention, single_head_split_window_attention,
                         single_head_full_attention_1d, single_head_split_window_attention_1d)
@@ -8,10 +9,10 @@ from .utils import generate_shift_window_attn_mask, generate_shift_window_attn_m
 
 class TransformerLayer(nn.Module):
     def __init__(self,
-                 d_model=128,
-                 nhead=1,
-                 no_ffn=False,
-                 ffn_dim_expansion=4,
+                 d_model: int = 128,
+                 nhead: int = 1,
+                 no_ffn: bool = False,
+                 ffn_dim_expansion: int = 4,
                  ):
         super(TransformerLayer, self).__init__()
 
@@ -28,7 +29,14 @@ class TransformerLayer(nn.Module):
 
         self.norm1 = nn.LayerNorm(d_model)
 
+        self.single_head_split_window_attention = single_head_split_window_attention()
+        self.single_head_split_window_attention_1d = single_head_split_window_attention_1d()
+        self.single_head_full_attention = single_head_full_attention()
+        self.single_head_full_attention_1d = single_head_full_attention_1d()
+
         # no ffn after self-attn, with ffn after cross-attn
+        self.mlp = nn.Sequential()
+        self.norm2 = nn.Sequential()
         if not self.no_ffn:
             in_channels = d_model * 2
             self.mlp = nn.Sequential(
@@ -39,15 +47,14 @@ class TransformerLayer(nn.Module):
 
             self.norm2 = nn.LayerNorm(d_model)
 
-    def forward(self, source, target,
-                height=None,
-                width=None,
-                shifted_window_attn_mask=None,
-                shifted_window_attn_mask_1d=None,
-                attn_type='swin',
-                with_shift=False,
-                attn_num_splits=None,
-                ):
+    def forward(self, source: torch.Tensor, target: torch.Tensor,
+                height: Optional[int] = None,
+                width: Optional[int] = None,
+                shifted_window_attn_mask: Optional[torch.Tensor] = None,
+                shifted_window_attn_mask_1d: Optional[torch.Tensor] = None,
+                attn_type: str = 'swin',
+                with_shift: bool = False,
+                attn_num_splits: int = 0) -> torch.Tensor:
         # source, target: [B, L, C]
         query, key, value = source, target, target
 
@@ -65,7 +72,7 @@ class TransformerLayer(nn.Module):
                 # without bringing obvious performance gains and thus the implementation is removed
                 raise NotImplementedError
             else:
-                message = single_head_split_window_attention(query, key, value,
+                message = self.single_head_split_window_attention(query, key, value,
                                                              num_splits=attn_num_splits,
                                                              with_shift=with_shift,
                                                              h=height,
@@ -79,7 +86,7 @@ class TransformerLayer(nn.Module):
             else:
                 if is_self_attn:
                     if attn_num_splits > 1:
-                        message = single_head_split_window_attention(query, key, value,
+                        message = self.single_head_split_window_attention(query, key, value,
                                                                      num_splits=attn_num_splits,
                                                                      with_shift=with_shift,
                                                                      h=height,
@@ -88,11 +95,11 @@ class TransformerLayer(nn.Module):
                                                                      )
                     else:
                         # full 2d attn
-                        message = single_head_full_attention(query, key, value)  # [N, L, C]
+                        message = self.single_head_full_attention(query, key, value)  # [N, L, C]
 
                 else:
                     # cross attn 1d
-                    message = single_head_full_attention_1d(query, key, value,
+                    message = self.single_head_full_attention_1d(query, key, value,
                                                             h=height,
                                                             w=width,
                                                             )
@@ -104,7 +111,7 @@ class TransformerLayer(nn.Module):
                 if is_self_attn:
                     if attn_num_splits > 1:
                         # self attn shift window
-                        message = single_head_split_window_attention(query, key, value,
+                        message = self.single_head_split_window_attention(query, key, value,
                                                                      num_splits=attn_num_splits,
                                                                      with_shift=with_shift,
                                                                      h=height,
@@ -113,12 +120,12 @@ class TransformerLayer(nn.Module):
                                                                      )
                     else:
                         # full 2d attn
-                        message = single_head_full_attention(query, key, value)  # [N, L, C]
+                        message = self.single_head_full_attention(query, key, value)  # [N, L, C]
                 else:
                     if attn_num_splits > 1:
                         assert shifted_window_attn_mask_1d is not None
                         # cross attn 1d shift
-                        message = single_head_split_window_attention_1d(query, key, value,
+                        message = self.single_head_split_window_attention_1d(query, key, value,
                                                                         num_splits=attn_num_splits,
                                                                         with_shift=with_shift,
                                                                         h=height,
@@ -126,13 +133,13 @@ class TransformerLayer(nn.Module):
                                                                         attn_mask=shifted_window_attn_mask_1d,
                                                                         )
                     else:
-                        message = single_head_full_attention_1d(query, key, value,
+                        message = self.single_head_full_attention_1d(query, key, value,
                                                                 h=height,
                                                                 w=width,
                                                                 )
 
         else:
-            message = single_head_full_attention(query, key, value)  # [B, L, C]
+            message = self.single_head_full_attention(query, key, value)  # [B, L, C]
 
         message = self.merge(message)  # [B, L, C]
         message = self.norm1(message)
@@ -148,9 +155,9 @@ class TransformerBlock(nn.Module):
     """self attention + cross attention + FFN"""
 
     def __init__(self,
-                 d_model=128,
-                 nhead=1,
-                 ffn_dim_expansion=4,
+                 d_model: int = 128,
+                 nhead: int = 1,
+                 ffn_dim_expansion: int = 4,
                  ):
         super(TransformerBlock, self).__init__()
 
@@ -162,18 +169,19 @@ class TransformerBlock(nn.Module):
 
         self.cross_attn_ffn = TransformerLayer(d_model=d_model,
                                                nhead=nhead,
+                                               no_ffn=False,
                                                ffn_dim_expansion=ffn_dim_expansion,
                                                )
 
-    def forward(self, source, target,
-                height=None,
-                width=None,
-                shifted_window_attn_mask=None,
-                shifted_window_attn_mask_1d=None,
-                attn_type='swin',
-                with_shift=False,
-                attn_num_splits=None,
-                ):
+    def forward(self, source: torch.Tensor, target: torch.Tensor,
+                height: Optional[int] = None,
+                width: Optional[int] = None,
+                shifted_window_attn_mask: Optional[torch.Tensor] = None,
+                shifted_window_attn_mask_1d: Optional[torch.Tensor] = None,
+                attn_type:str = 'swin',
+                with_shift:bool = False,
+                attn_num_splits: int = 0
+                ) -> torch.Tensor:
         # source, target: [B, L, C]
 
         # self attention
@@ -181,6 +189,7 @@ class TransformerBlock(nn.Module):
                                 height=height,
                                 width=width,
                                 shifted_window_attn_mask=shifted_window_attn_mask,
+                                shifted_window_attn_mask_1d=None,
                                 attn_type=attn_type,
                                 with_shift=with_shift,
                                 attn_num_splits=attn_num_splits,
@@ -202,15 +211,17 @@ class TransformerBlock(nn.Module):
 
 class FeatureTransformer(nn.Module):
     def __init__(self,
-                 num_layers=6,
-                 d_model=128,
-                 nhead=1,
-                 ffn_dim_expansion=4,
+                 num_layers: int = 6,
+                 d_model: int = 128,
+                 nhead: int = 1,
+                 ffn_dim_expansion: int = 4,
                  ):
         super(FeatureTransformer, self).__init__()
 
         self.d_model = d_model
         self.nhead = nhead
+        self.generate_shift_window_attn_mask = generate_shift_window_attn_mask()
+        self.generate_shift_window_attn_mask_1d = generate_shift_window_attn_mask_1d()
 
         self.layers = nn.ModuleList([
             TransformerBlock(d_model=d_model,
@@ -223,11 +234,11 @@ class FeatureTransformer(nn.Module):
             if p.dim() > 1:
                 nn.init.xavier_uniform_(p)
 
-    def forward(self, feature0, feature1,
-                attn_type='swin',
-                attn_num_splits=None,
-                **kwargs,
-                ):
+
+    def forward(self, feature0: torch.Tensor, feature1: torch.Tensor,
+                attn_type: str = 'swin',
+                attn_num_splits: int = 0
+                ) -> Tuple[torch.Tensor, torch.Tensor]:
 
         b, c, h, w = feature0.shape
         assert self.d_model == c
@@ -242,7 +253,7 @@ class FeatureTransformer(nn.Module):
             window_size_w = w // attn_num_splits
 
             # compute attn mask once
-            shifted_window_attn_mask = generate_shift_window_attn_mask(
+            shifted_window_attn_mask = self.generate_shift_window_attn_mask(
                 input_resolution=(h, w),
                 window_size_h=window_size_h,
                 window_size_w=window_size_w,
@@ -258,7 +269,7 @@ class FeatureTransformer(nn.Module):
             window_size_w = w // attn_num_splits
 
             # compute attn mask once
-            shifted_window_attn_mask_1d = generate_shift_window_attn_mask_1d(
+            shifted_window_attn_mask_1d = self.generate_shift_window_attn_mask_1d(
                 input_w=w,
                 window_size_w=window_size_w,
                 shift_size_w=window_size_w // 2,

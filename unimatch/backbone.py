@@ -14,10 +14,10 @@ class ResidualBlock(nn.Module):
                                dilation=dilation, padding=dilation, bias=False)
         self.relu = nn.ReLU(inplace=True)
 
-        self.norm1 = norm_layer(planes)
-        self.norm2 = norm_layer(planes)
+        self.norm1 = norm_layer(planes, track_running_stats=True)
+        self.norm2 = norm_layer(planes, track_running_stats=True)
         if not stride == 1 or in_planes != planes:
-            self.norm3 = norm_layer(planes)
+            self.norm3 = norm_layer(planes, track_running_stats=True)
 
         if stride == 1 and in_planes == planes:
             self.downsample = None
@@ -48,7 +48,7 @@ class CNNEncoder(nn.Module):
         feature_dims = [64, 96, 128]
 
         self.conv1 = nn.Conv2d(3, feature_dims[0], kernel_size=7, stride=2, padding=3, bias=False)  # 1/2
-        self.norm1 = norm_layer(feature_dims[0])
+        self.norm1 = norm_layer(feature_dims[0], track_running_stats=True)
         self.relu1 = nn.ReLU(inplace=True)
 
         self.in_planes = feature_dims[0]

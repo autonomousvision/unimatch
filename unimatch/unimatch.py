@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from typing import Optional, List, Dict
 
 from .backbone import CNNEncoder
 from .transformer import FeatureTransformer
@@ -43,6 +44,8 @@ class UniMatch(nn.Module):
 
         # propagation with self-attn
         self.feature_flow_attn = SelfAttnPropagation(in_channels=feature_channels)
+        self.feature_add_position = feature_add_position(feature_channels)
+        self.upsampler = nn.Sequential()
 
         if not self.reg_refine or task == 'depth':
             # convex upsampling simiar to RAFT
@@ -78,13 +81,14 @@ class UniMatch(nn.Module):
 
         return feature0, feature1
 
-    def upsample_flow(self, flow, feature, bilinear=False, upsample_factor=8,
-                      is_depth=False):
+    def upsample_flow(self, flow: torch.Tensor, feature: Optional[torch.Tensor], bilinear: bool = False, upsample_factor: float = 8,
+                      is_depth: bool = False) -> torch.Tensor:
         if bilinear:
-            multiplier = 1 if is_depth else upsample_factor
+            multiplier = 1.0 if is_depth else upsample_factor
             up_flow = F.interpolate(flow, scale_factor=upsample_factor,
                                     mode='bilinear', align_corners=True) * multiplier
         else:
+            assert feature is not None
             concat = torch.cat((flow, feature), dim=1)
             mask = self.upsampler(concat)
             up_flow = upsample_flow_with_mask(flow, mask, upsample_factor=self.upsample_factor,
@@ -92,23 +96,21 @@ class UniMatch(nn.Module):
 
         return up_flow
 
-    def forward(self, img0, img1,
-                attn_type=None,
-                attn_splits_list=None,
-                corr_radius_list=None,
-                prop_radius_list=None,
-                num_reg_refine=1,
-                pred_bidir_flow=False,
-                task='flow',
-                intrinsics=None,
-                pose=None,  # relative pose transform
-                min_depth=1. / 0.5,  # inverse depth range
-                max_depth=1. / 10,
-                num_depth_candidates=64,
-                depth_from_argmax=False,
-                pred_bidir_depth=False,
-                **kwargs,
-                ):
+    def forward(self, img0: torch.Tensor, img1: torch.Tensor,
+                attn_type: str,
+                attn_splits_list: List[int],
+                corr_radius_list: List[int],
+                prop_radius_list: List[int],
+                num_reg_refine: int = 1,
+                pred_bidir_flow: bool = False,
+                task: str = 'flow',
+                intrinsics: Optional[torch.Tensor] = None,
+                pose: torch.Tensor = None,  # relative pose transform
+                min_depth:float = 1. / 0.5,  # inverse depth range
+                max_depth:float = 1. / 10,
+                num_depth_candidates: int = 64,
+                depth_from_argmax: bool = False,
+                pred_bidir_depth: bool = False):
 
         if pred_bidir_flow:
             assert task == 'flow'
@@ -116,8 +118,8 @@ class UniMatch(nn.Module):
         if task == 'depth':
             assert self.num_scales == 1  # multi-scale depth model is not supported yet
 
-        results_dict = {}
-        flow_preds = []
+        results_dict: Dict[str, List[torch.Tensor]] = {}
+        flow_preds: List[torch.Tensor] = []
 
         if task == 'flow':
             # stereo and depth tasks have normalized img in dataloader
@@ -126,7 +128,7 @@ class UniMatch(nn.Module):
         # list of features, resolution low to high
         feature0_list, feature1_list = self.extract_feature(img0, img1)  # list of features
 
-        flow = None
+        flow: Optional[torch.Tensor] = None
 
         if task != 'depth':
             assert len(attn_splits_list) == len(corr_radius_list) == len(prop_radius_list) == self.num_scales
@@ -146,14 +148,19 @@ class UniMatch(nn.Module):
 
             if task == 'depth':
                 # scale intrinsics
+                assert intrinsics is not None
                 intrinsics_curr = intrinsics.clone()
                 intrinsics_curr[:, :2] = intrinsics_curr[:, :2] / upsample_factor
+            else:
+                intrinsics_curr = torch.zeros(1, 1)
 
             if scale_idx > 0:
                 assert task != 'depth'  # not supported for multi-scale depth model
-                flow = F.interpolate(flow, scale_factor=2, mode='bilinear', align_corners=True) * 2
+                assert flow is not None
+                flow = F.interpolate(flow, scale_factor=2.0, mode='bilinear', align_corners=True) * 2
 
             if flow is not None:
+                assert flow is not None
                 assert task != 'depth'
                 flow = flow.detach()
 
@@ -163,19 +170,21 @@ class UniMatch(nn.Module):
                     zeros = torch.zeros_like(flow)  # [B, 1, H, W]
                     # NOTE: reverse disp, disparity is positive
                     displace = torch.cat((-flow, zeros), dim=1)  # [B, 2, H, W]
-                    feature1 = flow_warp(feature1, displace)  # [B, C, H, W]
+                    feature1, _ = flow_warp(feature1, displace)  # [B, C, H, W]
                 elif task == 'flow':
-                    feature1 = flow_warp(feature1, flow)  # [B, C, H, W]
+                    feature1, _ = flow_warp(feature1, flow)  # [B, C, H, W]
                 else:
                     raise NotImplementedError
 
             attn_splits = attn_splits_list[scale_idx]
             if task != 'depth':
                 corr_radius = corr_radius_list[scale_idx]
+            else:
+                corr_radius = 0
             prop_radius = prop_radius_list[scale_idx]
 
             # add position to features
-            feature0, feature1 = feature_add_position(feature0, feature1, attn_splits, self.feature_channels)
+            feature0, feature1 = self.feature_add_position(feature0, feature1, attn_splits, self.feature_channels)
 
             # Transformer
             feature0, feature1 = self.transformer(feature0, feature1,
@@ -216,7 +225,12 @@ class UniMatch(nn.Module):
                         raise NotImplementedError
 
             # flow or residual flow
-            flow = flow + flow_pred if flow is not None else flow_pred
+            if flow is not None:
+                assert flow is not None
+                flow = flow + flow_pred
+            else:
+                assert flow is None
+                flow = flow_pred
 
             if task == 'stereo':
                 flow = flow.clamp(min=0)  # positive disparity
@@ -269,6 +283,8 @@ class UniMatch(nn.Module):
                                                      is_depth=task == 'depth')
                         flow_preds.append(flow_up)
 
+                    if isinstance(num_reg_refine, tuple):
+                        num_reg_refine = num_reg_refine[0]
                     assert num_reg_refine > 0
                     for refine_iter_idx in range(num_reg_refine):
                         flow = flow.detach()
@@ -292,7 +308,7 @@ class UniMatch(nn.Module):
                                                                        dim=0), torch.cat((feature1_ori,
                                                                                           feature0_ori), dim=0)
 
-                            flow_from_depth = compute_flow_with_depth_pose(1. / flow.squeeze(1),
+                            flow_from_depth, _ = compute_flow_with_depth_pose(1. / flow.squeeze(1),
                                                                            intrinsics_curr,
                                                                            extrinsics_rel=pose,
                                                                            )
