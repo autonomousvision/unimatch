@@ -62,9 +62,9 @@
 | -------------------------------------------------- | :--------: | :-------: | :----------------------------------------------------------: |
 | GMDepth-scale1-scannet                             |    4.7     |    17     | [download](https://s3.eu-central-1.amazonaws.com/avg-projects/unimatch/pretrained/gmdepth-scale1-scannet-d3d1efb5.pth) |
 | GMDepth-scale1-resumeflowthings-scannet            |    4.7     |    17     | [download](https://s3.eu-central-1.amazonaws.com/avg-projects/unimatch/pretrained/gmdepth-scale1-resumeflowthings-scannet-5d9d7964.pth) |
-| GMDepth-scale1-regrefine1-resumeflowthings-scannet |    4.7     |    17     | [download](https://s3.eu-central-1.amazonaws.com/avg-projects/unimatch/pretrained/gmdepth-scale1-regrefine1-resumeflowthings-scannet-90325722.pth) |
-| GMDepth-scale1-demon                               |    7.3     |    20     | [download](https://s3.eu-central-1.amazonaws.com/avg-projects/unimatch/pretrained/gmdepth-scale1-demon-bd64786e.pth) |
-| GMDepth-scale1-resumeflowthings-demon              |    7.3     |    20     | [download](https://s3.eu-central-1.amazonaws.com/avg-projects/unimatch/pretrained/gmdepth-scale1-resumeflowthings-demon-a2fe127b.pth) |
+| GMDepth-scale1-regrefine1-resumeflowthings-scannet |    4.7     |    20     | [download](https://s3.eu-central-1.amazonaws.com/avg-projects/unimatch/pretrained/gmdepth-scale1-regrefine1-resumeflowthings-scannet-90325722.pth) |
+| GMDepth-scale1-demon                               |    7.3     |    17     | [download](https://s3.eu-central-1.amazonaws.com/avg-projects/unimatch/pretrained/gmdepth-scale1-demon-bd64786e.pth) |
+| GMDepth-scale1-resumeflowthings-demon              |    7.3     |    17     | [download](https://s3.eu-central-1.amazonaws.com/avg-projects/unimatch/pretrained/gmdepth-scale1-resumeflowthings-demon-a2fe127b.pth) |
 | GMDepth-scale1-regrefine1-resumeflowthings-demon   |    7.3     |    20     | [download](https://s3.eu-central-1.amazonaws.com/avg-projects/unimatch/pretrained/gmdepth-scale1-regrefine1-resumeflowthings-demon-7c23f230.pth) |
 
 
