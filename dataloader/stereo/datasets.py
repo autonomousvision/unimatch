@@ -658,7 +658,7 @@ def build_dataset(args):
                                 transforms.RandomCrop(args.img_height, args.img_width),
                                 transforms.RandomColor(),
                                 transforms.RandomVerticalFlip(),
-                                transforms.ToTensor(no_normalize=args.raft_stereo),
+                                transforms.ToTensor(),
                                 transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD)
                                 ]
 
