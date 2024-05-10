@@ -197,12 +197,11 @@ def window_partition_1d(x: torch.Tensor, window_size_w: int) -> torch.Tensor:
 class generate_shift_window_attn_mask_1d(nn.Module):
     def forward(self, input_w: int, window_size_w: int, shift_size_w: int, device: torch.device = torch.device('cuda')) -> torch.Tensor:
         # calculate attention mask for SW-MSA
-
-        mask1 = torch.ones((0, input_w - window_size_w     )).to(device) * 0
-        mask2 = torch.ones((0, window_size_w - shift_size_w)).to(device) * 1
-        mask3 = torch.ones((0, shift_size_w                )).to(device) * 2
+        mask1 = torch.ones((input_w - window_size_w     )).to(device) * 0
+        mask2 = torch.ones((window_size_w - shift_size_w)).to(device) * 1
+        mask3 = torch.ones((shift_size_w                )).to(device) * 2
         # Concatenate the masks to create the full mask
-        img_mask = torch.cat([mask1, mask2, mask3], dim=1).unsqueeze(0).unsqueeze(-1)
+        img_mask = torch.cat([mask1, mask2, mask3], dim=0).unsqueeze(0).unsqueeze(-1)
 
         mask_windows = window_partition_1d(img_mask, window_size_w)  # nW, window_size, 1
         mask_windows = mask_windows.view(-1, window_size_w)
