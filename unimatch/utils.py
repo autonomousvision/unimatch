@@ -1,26 +1,27 @@
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 from .position import PositionEmbeddingSine
+from typing import Tuple
 
-
-def generate_window_grid(h_min, h_max, w_min, w_max, len_h, len_w, device=None):
+def generate_window_grid(h_min: int, h_max: int, w_min: int, w_max: int, len_h: int, len_w: int, device: torch.device = None) -> torch.Tensor:
     assert device is not None
 
     x, y = torch.meshgrid([torch.linspace(w_min, w_max, len_w, device=device),
                            torch.linspace(h_min, h_max, len_h, device=device)],
-                          )
+                          indexing = 'ij')
     grid = torch.stack((x, y), -1).transpose(0, 1).float()  # [H, W, 2]
 
     return grid
 
 
-def normalize_coords(coords, h, w):
+def normalize_coords(coords: torch.Tensor, h: int, w: int) -> torch.Tensor:
     # coords: [B, H, W, 2]
     c = torch.Tensor([(w - 1) / 2., (h - 1) / 2.]).float().to(coords.device)
     return (coords - c) / c  # [-1, 1]
 
 
-def normalize_img(img0, img1):
+def normalize_img(img0: torch.Tensor, img1: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     # loaded images are in [0, 255]
     # normalize by ImageNet mean and std
     mean = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1).to(img1.device)
@@ -30,109 +31,113 @@ def normalize_img(img0, img1):
 
     return img0, img1
 
+class split_feature(nn.Module):
+    def forward(self, feature: torch.Tensor, num_splits: int = 2, channel_last: bool = False) -> torch.Tensor:
+        if channel_last:  # [B, H, W, C]
+            b, h, w, c = feature.size()
+            assert h % num_splits == 0 and w % num_splits == 0
 
-def split_feature(feature,
-                  num_splits=2,
-                  channel_last=False,
-                  ):
-    if channel_last:  # [B, H, W, C]
-        b, h, w, c = feature.size()
-        assert h % num_splits == 0 and w % num_splits == 0
+            b_new = b * num_splits * num_splits
+            h_new = h // num_splits
+            w_new = w // num_splits
 
-        b_new = b * num_splits * num_splits
-        h_new = h // num_splits
-        w_new = w // num_splits
+            feature = feature.view(b, num_splits, h // num_splits, num_splits, w // num_splits, c
+                                ).permute(0, 1, 3, 2, 4, 5).reshape(b_new, h_new, w_new, c)  # [B*K*K, H/K, W/K, C]
+        else:  # [B, C, H, W]
+            b, c, h, w = feature.size()
+            assert h % num_splits == 0 and w % num_splits == 0
 
-        feature = feature.view(b, num_splits, h // num_splits, num_splits, w // num_splits, c
-                               ).permute(0, 1, 3, 2, 4, 5).reshape(b_new, h_new, w_new, c)  # [B*K*K, H/K, W/K, C]
-    else:  # [B, C, H, W]
-        b, c, h, w = feature.size()
-        assert h % num_splits == 0 and w % num_splits == 0
+            b_new = b * num_splits * num_splits
+            h_new = h // num_splits
+            w_new = w // num_splits
 
-        b_new = b * num_splits * num_splits
-        h_new = h // num_splits
-        w_new = w // num_splits
+            feature = feature.view(b, c, num_splits, h // num_splits, num_splits, w // num_splits
+                                ).permute(0, 2, 4, 1, 3, 5).reshape(b_new, c, h_new, w_new)  # [B*K*K, C, H/K, W/K]
 
-        feature = feature.view(b, c, num_splits, h // num_splits, num_splits, w // num_splits
-                               ).permute(0, 2, 4, 1, 3, 5).reshape(b_new, c, h_new, w_new)  # [B*K*K, C, H/K, W/K]
+        return feature
 
-    return feature
+class merge_splits(nn.Module):
+    def forward(self, splits: torch.Tensor, num_splits: int = 2, channel_last: bool = False) -> torch.Tensor:
+        if channel_last:  # [B*K*K, H/K, W/K, C]
+            b, h, w, c = splits.size()
+            new_b = b // num_splits // num_splits
+
+            splits = splits.view(new_b, num_splits, num_splits, h, w, c)
+            merge = splits.permute(0, 1, 3, 2, 4, 5).contiguous().view(
+                new_b, num_splits * h, num_splits * w, c)  # [B, H, W, C]
+        else:  # [B*K*K, C, H/K, W/K]
+            b, c, h, w = splits.size()
+            new_b = b // num_splits // num_splits
+
+            splits = splits.view(new_b, num_splits, num_splits, c, h, w)
+            merge = splits.permute(0, 3, 1, 4, 2, 5).contiguous().view(
+                new_b, c, num_splits * h, num_splits * w)  # [B, C, H, W]
+
+        return merge
+
+class generate_shift_window_attn_mask(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.split_feature = split_feature()
+
+    def forward(self, input_resolution: Tuple[int, int], window_size_h: int, window_size_w: int, shift_size_h: int, shift_size_w: int, device: torch.device = torch.device('cuda')) -> torch.Tensor:
+        # ref: https://github.com/microsoft/Swin-Transformer/blob/main/models/swin_transformer.py
+        # calculate attention mask for SW-MSA
+        h, w = input_resolution
+
+        mask1 = torch.ones((h - window_size_h,            w - window_size_w           )).to(device) * 0
+        mask2 = torch.ones((h - window_size_h,            window_size_w - shift_size_w)).to(device) * 1
+        mask3 = torch.ones((h - window_size_h,            shift_size_w                )).to(device) * 2
+        mask4 = torch.ones((window_size_h - shift_size_h, w - window_size_w           )).to(device) * 3
+        mask5 = torch.ones((window_size_h - shift_size_h, window_size_w - shift_size_w)).to(device) * 4
+        mask6 = torch.ones((window_size_h - shift_size_h, shift_size_w                )).to(device) * 5
+        mask7 = torch.ones((shift_size_h,                 w - window_size_w           )).to(device) * 6
+        mask8 = torch.ones((shift_size_h,                 window_size_w - shift_size_w)).to(device) * 7
+        mask9 = torch.ones((shift_size_h,                 shift_size_w                )).to(device) * 8
+        # Concatenate the masks to create the full mask
+        upper_mask  = torch.cat([mask1, mask2, mask3], dim=1)
+        middle_mask = torch.cat([mask4, mask5, mask6], dim=1)
+        lower_mask  = torch.cat([mask7, mask8, mask9], dim=1)
+        img_mask = torch.cat([upper_mask, middle_mask, lower_mask], dim=0).unsqueeze(0).unsqueeze(-1) # Add extra dimensions for batch size and channels
+
+        mask_windows = self.split_feature(img_mask, num_splits=input_resolution[-1] // window_size_w, channel_last=True)
+
+        mask_windows = mask_windows.view(-1, window_size_h * window_size_w)
+        attn_mask = mask_windows.unsqueeze(1) - mask_windows.unsqueeze(2)
+        attn_mask = attn_mask.masked_fill(attn_mask != 0, float(-100.0)).masked_fill(attn_mask == 0, float(0.0))
+
+        return attn_mask
+
+class feature_add_position(nn.Module):
+    def __init__(self, feature_channels: int):
+        super().__init__()
+        self.split_feature = split_feature()
+        self.merge_splits = merge_splits()
+        self.pos_enc = PositionEmbeddingSine(num_pos_feats=feature_channels // 2)
+
+    def forward(self, feature0: torch.Tensor, feature1: torch.Tensor, attn_splits: int, feature_channels: int) -> Tuple[torch.Tensor, torch.Tensor]:
+        if attn_splits > 1:  # add position in splited window
+            feature0_splits = self.split_feature(feature0, num_splits=attn_splits)
+            feature1_splits = self.split_feature(feature1, num_splits=attn_splits)
+
+            position = self.pos_enc(feature0_splits)
+
+            feature0_splits = feature0_splits + position
+            feature1_splits = feature1_splits + position
+
+            feature0 = self.merge_splits(feature0_splits, num_splits=attn_splits)
+            feature1 = self.merge_splits(feature1_splits, num_splits=attn_splits)
+        else:
+            position = self.pos_enc(feature0)
+
+            feature0 = feature0 + position
+            feature1 = feature1 + position
+
+        return feature0, feature1
 
 
-def merge_splits(splits,
-                 num_splits=2,
-                 channel_last=False,
-                 ):
-    if channel_last:  # [B*K*K, H/K, W/K, C]
-        b, h, w, c = splits.size()
-        new_b = b // num_splits // num_splits
-
-        splits = splits.view(new_b, num_splits, num_splits, h, w, c)
-        merge = splits.permute(0, 1, 3, 2, 4, 5).contiguous().view(
-            new_b, num_splits * h, num_splits * w, c)  # [B, H, W, C]
-    else:  # [B*K*K, C, H/K, W/K]
-        b, c, h, w = splits.size()
-        new_b = b // num_splits // num_splits
-
-        splits = splits.view(new_b, num_splits, num_splits, c, h, w)
-        merge = splits.permute(0, 3, 1, 4, 2, 5).contiguous().view(
-            new_b, c, num_splits * h, num_splits * w)  # [B, C, H, W]
-
-    return merge
-
-
-def generate_shift_window_attn_mask(input_resolution, window_size_h, window_size_w,
-                                    shift_size_h, shift_size_w, device=torch.device('cuda')):
-    # ref: https://github.com/microsoft/Swin-Transformer/blob/main/models/swin_transformer.py
-    # calculate attention mask for SW-MSA
-    h, w = input_resolution
-    img_mask = torch.zeros((1, h, w, 1)).to(device)  # 1 H W 1
-    h_slices = (slice(0, -window_size_h),
-                slice(-window_size_h, -shift_size_h),
-                slice(-shift_size_h, None))
-    w_slices = (slice(0, -window_size_w),
-                slice(-window_size_w, -shift_size_w),
-                slice(-shift_size_w, None))
-    cnt = 0
-    for h in h_slices:
-        for w in w_slices:
-            img_mask[:, h, w, :] = cnt
-            cnt += 1
-
-    mask_windows = split_feature(img_mask, num_splits=input_resolution[-1] // window_size_w, channel_last=True)
-
-    mask_windows = mask_windows.view(-1, window_size_h * window_size_w)
-    attn_mask = mask_windows.unsqueeze(1) - mask_windows.unsqueeze(2)
-    attn_mask = attn_mask.masked_fill(attn_mask != 0, float(-100.0)).masked_fill(attn_mask == 0, float(0.0))
-
-    return attn_mask
-
-
-def feature_add_position(feature0, feature1, attn_splits, feature_channels):
-    pos_enc = PositionEmbeddingSine(num_pos_feats=feature_channels // 2)
-
-    if attn_splits > 1:  # add position in splited window
-        feature0_splits = split_feature(feature0, num_splits=attn_splits)
-        feature1_splits = split_feature(feature1, num_splits=attn_splits)
-
-        position = pos_enc(feature0_splits)
-
-        feature0_splits = feature0_splits + position
-        feature1_splits = feature1_splits + position
-
-        feature0 = merge_splits(feature0_splits, num_splits=attn_splits)
-        feature1 = merge_splits(feature1_splits, num_splits=attn_splits)
-    else:
-        position = pos_enc(feature0)
-
-        feature0 = feature0 + position
-        feature1 = feature1 + position
-
-    return feature0, feature1
-
-
-def upsample_flow_with_mask(flow, up_mask, upsample_factor,
-                            is_depth=False):
+def upsample_flow_with_mask(flow: torch.Tensor, up_mask: torch.Tensor, upsample_factor: int,
+                            is_depth: bool = False) -> torch.Tensor:
     # convex upsampling following raft
 
     mask = up_mask
@@ -151,38 +156,32 @@ def upsample_flow_with_mask(flow, up_mask, upsample_factor,
 
     return up_flow
 
+class split_feature_1d(nn.Module):
+    def forward(self, feature: torch.Tensor, num_splits: int = 2) -> torch.Tensor:
+        # feature: [B, W, C]
+        b, w, c = feature.size()
+        assert w % num_splits == 0
 
-def split_feature_1d(feature,
-                     num_splits=2,
-                     ):
-    # feature: [B, W, C]
-    b, w, c = feature.size()
-    assert w % num_splits == 0
+        b_new = b * num_splits
+        w_new = w // num_splits
 
-    b_new = b * num_splits
-    w_new = w // num_splits
+        feature = feature.view(b, num_splits, w // num_splits, c
+                            ).view(b_new, w_new, c)  # [B*K, W/K, C]
 
-    feature = feature.view(b, num_splits, w // num_splits, c
-                           ).view(b_new, w_new, c)  # [B*K, W/K, C]
+        return feature
 
-    return feature
+class merge_splits_1d(nn.Module):
+    def forward(self, splits: torch.Tensor, h: int, num_splits: int = 2) -> torch.Tensor:
+        b, w, c = splits.size()
+        new_b = b // num_splits // h
 
+        splits = splits.view(new_b, h, num_splits, w, c)
+        merge = splits.view(
+            new_b, h, num_splits * w, c)  # [B, H, W, C]
 
-def merge_splits_1d(splits,
-                    h,
-                    num_splits=2,
-                    ):
-    b, w, c = splits.size()
-    new_b = b // num_splits // h
+        return merge
 
-    splits = splits.view(new_b, h, num_splits, w, c)
-    merge = splits.view(
-        new_b, h, num_splits * w, c)  # [B, H, W, C]
-
-    return merge
-
-
-def window_partition_1d(x, window_size_w):
+def window_partition_1d(x: torch.Tensor, window_size_w: int) -> torch.Tensor:
     """
     Args:
         x: (B, W, C)
@@ -195,22 +194,18 @@ def window_partition_1d(x, window_size_w):
     x = x.view(B, W // window_size_w, window_size_w, C).view(-1, window_size_w, C)
     return x
 
+class generate_shift_window_attn_mask_1d(nn.Module):
+    def forward(self, input_w: int, window_size_w: int, shift_size_w: int, device: torch.device = torch.device('cuda')) -> torch.Tensor:
+        # calculate attention mask for SW-MSA
+        mask1 = torch.ones((input_w - window_size_w     )).to(device) * 0
+        mask2 = torch.ones((window_size_w - shift_size_w)).to(device) * 1
+        mask3 = torch.ones((shift_size_w                )).to(device) * 2
+        # Concatenate the masks to create the full mask
+        img_mask = torch.cat([mask1, mask2, mask3], dim=0).unsqueeze(0).unsqueeze(-1)
 
-def generate_shift_window_attn_mask_1d(input_w, window_size_w,
-                                       shift_size_w, device=torch.device('cuda')):
-    # calculate attention mask for SW-MSA
-    img_mask = torch.zeros((1, input_w, 1)).to(device)  # 1 W 1
-    w_slices = (slice(0, -window_size_w),
-                slice(-window_size_w, -shift_size_w),
-                slice(-shift_size_w, None))
-    cnt = 0
-    for w in w_slices:
-        img_mask[:, w, :] = cnt
-        cnt += 1
+        mask_windows = window_partition_1d(img_mask, window_size_w)  # nW, window_size, 1
+        mask_windows = mask_windows.view(-1, window_size_w)
+        attn_mask = mask_windows.unsqueeze(1) - mask_windows.unsqueeze(2)  # nW, window_size, window_size
+        attn_mask = attn_mask.masked_fill(attn_mask != 0, float(-100.0)).masked_fill(attn_mask == 0, float(0.0))
 
-    mask_windows = window_partition_1d(img_mask, window_size_w)  # nW, window_size, 1
-    mask_windows = mask_windows.view(-1, window_size_w)
-    attn_mask = mask_windows.unsqueeze(1) - mask_windows.unsqueeze(2)  # nW, window_size, window_size
-    attn_mask = attn_mask.masked_fill(attn_mask != 0, float(-100.0)).masked_fill(attn_mask == 0, float(0.0))
-
-    return attn_mask
+        return attn_mask

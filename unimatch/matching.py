@@ -1,12 +1,13 @@
 import torch
 import torch.nn.functional as F
+from typing import Tuple
 
 from .geometry import coords_grid, generate_window_grid, normalize_coords
 
 
-def global_correlation_softmax(feature0, feature1,
-                               pred_bidir_flow=False,
-                               ):
+def global_correlation_softmax(feature0: torch.Tensor, feature1: torch.Tensor,
+                               pred_bidir_flow: bool = False,
+                               ) -> Tuple[torch.Tensor, torch.Tensor]:
     # global correlation
     b, c, h, w = feature0.shape
     feature0 = feature0.view(b, c, -1).permute(0, 2, 1)  # [B, H*W, C]
@@ -36,9 +37,9 @@ def global_correlation_softmax(feature0, feature1,
     return flow, prob
 
 
-def local_correlation_softmax(feature0, feature1, local_radius,
-                              padding_mode='zeros',
-                              ):
+def local_correlation_softmax(feature0: torch.Tensor, feature1: torch.Tensor, local_radius: int,
+                              padding_mode: str = 'zeros',
+                              ) -> Tuple[torch.Tensor, torch.Tensor]:
     b, c, h, w = feature0.size()
     coords_init = coords_grid(b, h, w).to(feature0.device)  # [B, 2, H, W]
     coords = coords_init.view(b, 2, -1).permute(0, 2, 1)  # [B, H*W, 2]
@@ -83,12 +84,12 @@ def local_correlation_softmax(feature0, feature1, local_radius,
     return flow, match_prob
 
 
-def local_correlation_with_flow(feature0, feature1,
-                                flow,
-                                local_radius,
-                                padding_mode='zeros',
-                                dilation=1,
-                                ):
+def local_correlation_with_flow(feature0: torch.Tensor, feature1: torch.Tensor,
+                                flow: torch.Tensor,
+                                local_radius: int,
+                                padding_mode: str = 'zeros',
+                                dilation: int = 1,
+                                ) -> torch.Tensor:
     b, c, h, w = feature0.size()
     coords_init = coords_grid(b, h, w).to(feature0.device)  # [B, 2, H, W]
     coords = coords_init.view(b, 2, -1).permute(0, 2, 1)  # [B, H*W, 2]
@@ -123,8 +124,7 @@ def local_correlation_with_flow(feature0, feature1,
     return corr
 
 
-def global_correlation_softmax_stereo(feature0, feature1,
-                                      ):
+def global_correlation_softmax_stereo(feature0: torch.Tensor, feature1: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     # global correlation on horizontal direction
     b, c, h, w = feature0.shape
 
@@ -151,8 +151,7 @@ def global_correlation_softmax_stereo(feature0, feature1,
     return disparity.unsqueeze(1), prob  # feature resolution
 
 
-def local_correlation_softmax_stereo(feature0, feature1, local_radius,
-                                     ):
+def local_correlation_softmax_stereo(feature0: torch.Tensor, feature1: torch.Tensor, local_radius: int) -> Tuple[torch.Tensor, torch.Tensor]:
     b, c, h, w = feature0.size()
     coords_init = coords_grid(b, h, w).to(feature0.device)  # [B, 2, H, W]
     coords = coords_init.view(b, 2, -1).permute(0, 2, 1).contiguous()  # [B, H*W, 2]
@@ -200,13 +199,13 @@ def local_correlation_softmax_stereo(feature0, feature1, local_radius,
     return flow_x, match_prob
 
 
-def correlation_softmax_depth(feature0, feature1,
-                              intrinsics,
-                              pose,
-                              depth_candidates,
-                              depth_from_argmax=False,
-                              pred_bidir_depth=False,
-                              ):
+def correlation_softmax_depth(feature0: torch.Tensor, feature1: torch.Tensor,
+                              intrinsics: torch.Tensor,
+                              pose: torch.Tensor,
+                              depth_candidates: torch.Tensor,
+                              depth_from_argmax: bool = False,
+                              pred_bidir_depth: bool = False,
+                              ) -> Tuple[torch.Tensor, torch.Tensor]:
     b, c, h, w = feature0.size()
     assert depth_candidates.dim() == 4  # [B, D, H, W]
     scale_factor = c ** 0.5
@@ -236,9 +235,9 @@ def correlation_softmax_depth(feature0, feature1,
     return depth, match_prob
 
 
-def warp_with_pose_depth_candidates(feature1, intrinsics, pose, depth,
-                                    clamp_min_depth=1e-3,
-                                    ):
+def warp_with_pose_depth_candidates(feature1: torch.Tensor, intrinsics: torch.Tensor, pose: torch.Tensor, depth: torch.Tensor,
+                                    clamp_min_depth: float = 1e-3,
+                                    ) -> torch.Tensor:
     """
     feature1: [B, C, H, W]
     intrinsics: [B, 3, 3]
