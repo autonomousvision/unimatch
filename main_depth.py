@@ -6,6 +6,7 @@ import torch.utils.data
 from torch.utils.tensorboard import SummaryWriter
 
 from unimatch.unimatch import UniMatch
+from unimatch.unimatch_depthsplat import UniMatchDepthSplat
 from dataloader.depth.datasets import DemonDataset, ScannetDataset
 from dataloader.depth import augmentation
 from loss.depth_loss import depth_loss_func, depth_grad_loss_func
@@ -85,6 +86,10 @@ def get_args_parser():
     parser.add_argument('--num_reg_refine', default=1, type=int,
                         help='number of additional local regression refinement')
 
+    # depthsplat depth model
+    parser.add_argument('--depthsplat_depth', action='store_true')
+    parser.add_argument('--vit_type', default='vits', type=str, choices=['vits', 'vitb', 'vitl'])
+
     # loss
     parser.add_argument('--depth_loss_weight', default=20, type=float)
     parser.add_argument('--depth_grad_loss_weight', default=20, type=float)
@@ -143,14 +148,20 @@ def main(args):
         setup_for_distributed(args.local_rank == 0)
 
     # model
-    model = UniMatch(feature_channels=args.feature_channels,
-                     num_scales=args.num_scales,
-                     upsample_factor=args.upsample_factor,
-                     num_head=args.num_head,
-                     ffn_dim_expansion=args.ffn_dim_expansion,
-                     num_transformer_layers=args.num_transformer_layers,
-                     reg_refine=args.reg_refine,
-                     task=args.task).to(device)
+    if args.depthsplat_depth:
+        model = UniMatchDepthSplat(num_scales=args.num_scales,
+                                   upsample_factor=args.upsample_factor,
+                                   vit_type=args.vit_type,
+                                   ).to(device)
+    else:
+        model = UniMatch(feature_channels=args.feature_channels,
+                         num_scales=args.num_scales,
+                         upsample_factor=args.upsample_factor,
+                         num_head=args.num_head,
+                         ffn_dim_expansion=args.ffn_dim_expansion,
+                         num_transformer_layers=args.num_transformer_layers,
+                         reg_refine=args.reg_refine,
+                         task=args.task).to(device)
 
     if print_info:
         print(model)

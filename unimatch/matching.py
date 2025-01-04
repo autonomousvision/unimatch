@@ -238,6 +238,7 @@ def correlation_softmax_depth(feature0, feature1,
 
 def warp_with_pose_depth_candidates(feature1, intrinsics, pose, depth,
                                     clamp_min_depth=1e-3,
+                                    grid_sample_disable_cudnn=False,
                                     ):
     """
     feature1: [B, C, H, W]
@@ -272,8 +273,10 @@ def warp_with_pose_depth_candidates(feature1, intrinsics, pose, depth,
         grid = torch.stack([x_grid, y_grid], dim=-1)  # [B, D, H*W, 2]
 
     # sample features
-    warped_feature = F.grid_sample(feature1, grid.view(b, d * h, w, 2), mode='bilinear',
-                                   padding_mode='zeros',
-                                   align_corners=True).view(b, c, d, h, w)  # [B, C, D, H, W]
+    # ref: https://github.com/pytorch/pytorch/issues/88380
+    with torch.backends.cudnn.flags(enabled=not grid_sample_disable_cudnn):
+        warped_feature = F.grid_sample(feature1, grid.view(b, d * h, w, 2), mode='bilinear',
+                                    padding_mode='zeros',
+                                    align_corners=True).view(b, c, d, h, w)  # [B, C, D, H, W]
 
     return warped_feature

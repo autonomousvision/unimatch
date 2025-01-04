@@ -48,6 +48,11 @@ This project is developed based on our previous works:
 - [AANet: Adaptive Aggregation Network for Efficient Stereo Matching, CVPR 2020](https://github.com/haofeixu/aanet)
 
 
+## Updates
+
+- 2025-01-04: Check out [DepthSplat](https://haofeixu.github.io/depthsplat/) for a modern multi-view depth model, which leverages monocular depth ([Depth Anything V2](https://github.com/DepthAnything/Depth-Anything-V2)) to significantly improve the robustness of UniMatch.
+
+- 2025-01-04: The UniMatch depth model served as the foundational backbone of [MVSplat (ECCV 2024, Oral)](https://donydchen.github.io/mvsplat/) for sparse-view feed-forward 3DGS reconstruction.
 
 ## Installation
 
@@ -67,10 +72,21 @@ bash pip_install.sh
 ```
 
 
+To use the [depth models from DepthSplat](https://github.com/cvg/depthsplat/blob/main/MODEL_ZOO.md), you need to create a new conda environment with higher version dependencies:
+
+```
+conda create -y -n depthsplat-depth python=3.10
+conda activate depthsplat-depth
+pip install torch==2.4.0 torchvision==0.19.0 --index-url https://download.pytorch.org/whl/cu124
+pip install tensorboard==2.9.1 einops opencv-python>=4.8.1.78 matplotlib
+```
+
 
 ## Model Zoo
 
 A large number of pretrained models with different speed-accuracy trade-offs for flow, stereo and depth are available at [MODEL_ZOO.md](MODEL_ZOO.md).
+
+Check out [DepthSplat's Model Zoo](https://github.com/cvg/depthsplat/blob/main/MODEL_ZOO.md) for better depth models.
 
 We assume the downloaded weights are located under the `pretrained` directory.
 
@@ -82,7 +98,7 @@ Otherwise, you may need to change the corresponding paths in the scripts.
 
 Given an image pair or a video sequence, our code supports generating prediction results of optical flow, disparity and depth.
 
-Please refer to [scripts/gmflow_demo.sh](scripts/gmflow_demo.sh), [scripts/gmstereo_demo.sh](scripts/gmstereo_demo.sh) and [scripts/gmdepth_demo.sh](scripts/gmdepth_demo.sh) for example usages.
+Please refer to [scripts/gmflow_demo.sh](scripts/gmflow_demo.sh), [scripts/gmstereo_demo.sh](scripts/gmstereo_demo.sh), [scripts/gmdepth_demo.sh](scripts/gmdepth_demo.sh) and [scripts/depthsplat_depth_demo.sh](scripts/depthsplat_depth_demo.sh) for example usages.
 
 
 
@@ -142,6 +158,16 @@ This work is a substantial extension of our previous conference paper [GMFlow (C
 }
 ```
 
+Please consider citing [DepthSplat](https://arxiv.org/abs/2410.13862) if DepthSplat's depth model is used in your research.
+
+```
+@article{xu2024depthsplat,
+      title   = {DepthSplat: Connecting Gaussian Splatting and Depth},
+      author  = {Xu, Haofei and Peng, Songyou and Wang, Fangjinhua and Blum, Hermann and Barath, Daniel and Geiger, Andreas and Pollefeys, Marc},
+      journal = {arXiv preprint arXiv:2410.13862},
+      year    = {2024}
+    }
+```
 
 
 ## Acknowledgements
