@@ -12,8 +12,11 @@ from .geometry import flow_warp, compute_flow_with_depth_pose
 from .reg_refine import BasicUpdateBlock
 from .utils import normalize_img, feature_add_position, upsample_flow_with_mask
 
+from huggingface_hub import PyTorchModelHubMixin
 
-class UniMatch(nn.Module):
+
+class UniMatch(nn.Module, PyTorchModelHubMixin, repo_url="https://github.com/autonomousvision/unimatch",
+               pipeline_tag="any-to-any", tags=["depth-estimation", "optical-flow-estimation", "disparity-estimation"], license="mit")
     def __init__(self,
                  num_scales=1,
                  feature_channels=128,
