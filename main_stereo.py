@@ -594,6 +594,8 @@ def main(args):
 
                         f.write('\n\n')
 
+                model.train()
+
             if total_steps >= args.num_steps:
                 print('Training done')
 
